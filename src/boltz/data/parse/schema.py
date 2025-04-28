@@ -1018,7 +1018,7 @@ def parse_boltz_schema(  # noqa: C901, PLR0915, PLR0912
     for item in schema["sequences"]:
         # Get entity type
         entity_type = next(iter(item.keys())).lower()
-        if entity_type not in {"protein", "dna", "rna", "ligand"}:
+        if entity_type not in {"protein", "dna", "rna", "ligand", "carbohydrate"}:
             msg = f"Invalid entity type: {entity_type}"
             raise ValueError(msg)
 
@@ -1031,7 +1031,11 @@ def parse_boltz_schema(  # noqa: C901, PLR0915, PLR0912
             if "smiles" in item[entity_type]:
                 seq = str(item[entity_type]["smiles"])
             else:
-                seq = str(item[entity_type]["ccd"])
+                ccd_lig_item = item[entity_type]["ccd"]
+                if isinstance(ccd_lig_item, (list, tuple, set)):
+                    seq = tuple(str(e) for e in ccd_lig_item)
+                else:
+                    seq = str(ccd_lig_item)
 
         # Group items by entity
         items_to_group.setdefault((entity_type, seq), []).append(item)
@@ -1294,6 +1298,33 @@ def parse_boltz_schema(  # noqa: C901, PLR0915, PLR0912
                 "Cyclic flag is not supported for ligands"
             )
 
+        elif (entity_type == "carbohydrate") and "ccd" in (items[0][entity_type]):
+            seq = items[0][entity_type]["ccd"]
+            if isinstance(seq, str):
+                seq = [seq]
+
+            residues = []
+            for i, code in enumerate(seq):
+                if code not in ccd:
+                    msg = f"CCD component {code} not found!"
+                    raise ValueError(msg)
+
+                # Parse residue
+                residue = parse_ccd_residue(
+                    name=code,
+                    ref_mol=ccd[code],
+                    res_idx=i,
+                )
+                residues.append(residue)
+
+            # Create multi ligand chain
+            # NOTE: this version of the parser does not support multi-ccd ligand chain
+            # DONE: to support multi-ccd ligand chain, we need to add a new chain type (carbohydrate, etc.)
+            parsed_chain = ParsedChain(
+                entity=entity_id,
+                residues=residues,
+                type=const.chain_type_ids["NONPOLYMER"],
+            )
         else:
             msg = f"Invalid entity type: {entity_type}"
             raise ValueError(msg)
