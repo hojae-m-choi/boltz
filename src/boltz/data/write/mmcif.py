@@ -110,7 +110,7 @@ def to_mmcif(
         if entity.type == "water":
             asym = ihm.WaterAsymUnit(
                 entity,
-                1,
+                len(entity.sequence),
                 details="Model subunit %s" % chain_tag,
                 id=chain_tag,
             )
