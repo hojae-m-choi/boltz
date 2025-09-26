@@ -329,7 +329,7 @@ def construct_paired_msa(  # noqa: C901, PLR0915, PLR0912
 
     msa_data = torch.tensor(msa_data, dtype=torch.long)
     del_data = torch.tensor(del_data, dtype=torch.float)
-    paired_data = torch.tensor(paired_data, dtype=torch.float)
+    paired_data = torch.tensor(paired_data, dtype=torch.bool)
 
     return msa_data, del_data, paired_data
 
@@ -956,13 +956,13 @@ def process_msa_features(
             deletion_mean = pad_dim(deletion_mean, 0, pad_len)
 
     return {
-        "msa": msa,
-        "msa_paired": paired,
+        "msa": msa.type(torch.bool),
+        "msa_paired": paired.type(torch.bool),
         "deletion_value": deletion,
         "has_deletion": has_deletion,
         "deletion_mean": deletion_mean,
         "profile": profile,
-        "msa_mask": msa_mask,
+        "msa_mask": msa_mask.type(torch.bool),
     }
 
 
